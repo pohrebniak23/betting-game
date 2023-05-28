@@ -5,6 +5,7 @@ import {
   AlertTitle,
   CardBody,
   Card as ChakraCard,
+  Link,
 } from "@chakra-ui/react";
 import { Web3Button, useAddress } from "@thirdweb-dev/react";
 import { ethers } from "ethers";
@@ -29,7 +30,15 @@ export default function Card({ amount, player, id }: CardProps) {
       <CardBody position="relative">
         <div className={styles.amount}>Amount: {amount} BNB</div>
 
-        <div className={styles.address}>Player: {formatEthAddress(player)}</div>
+        <div className={styles.address}>
+          Player:
+          <Link
+            isExternal={true}
+            href={`https://testnet.bscscan.com/address/${player}`}
+          >
+            {formatEthAddress(player)}
+          </Link>
+        </div>
 
         {isError && (
           <Alert status="error">
@@ -48,7 +57,7 @@ export default function Card({ amount, player, id }: CardProps) {
                 value: ethers.utils.parseEther(amount),
               });
             }}
-            onError={() => setError(true)}
+            onError={(error) => console.log(error)}
             children={"Play game"}
             className={styles.button}
           />
