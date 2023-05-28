@@ -3,6 +3,7 @@ pragma solidity ^0.8.0;
 contract ContractGame {
     uint256 private seed;
     uint256 public gamesCount;
+    uint256 public gameId;
 
     struct playersList {
         uint256 id;
@@ -12,15 +13,20 @@ contract ContractGame {
 
     mapping(uint256 => playersList) players;
 
+    event GameResult(address winner, address looser, uint256 winAmount);
+    event GameCreated(string status, string message, uint256 amount);
+
     function createGame() public payable {
         require(msg.value > 0, "Amount is not valid");
 
         playersList storage newGame = players[gamesCount];
         newGame.player = payable(msg.sender);
         newGame.amount = msg.value;
-        newGame.id = gamesCount;
+        newGame.id = gameId;
 
+        gameId++;
         gamesCount++;
+        emit GameCreated("Success", "Game successfull created", msg.value);
     }
 
     function deleteGame(uint256 id) public {
@@ -42,11 +48,19 @@ contract ContractGame {
         view
         returns (address payable, uint256)
     {
-        playersList storage gameData = players[id];
+        address payable addressValue;
+        uint256 amountValue;
 
-        require(gameData.player != address(0), "Game is not found");
+        for (uint256 i = 0; i < gameId; i++) {
+            if (players[i].player != address(0) && players[i].id == id) {
+                addressValue = players[i].player;
+                amountValue = players[i].amount;
+            }
+        }
 
-        return (gameData.player, gameData.amount);
+        require(addressValue != address(0), "Game is not found");
+
+        return (addressValue, amountValue);
     }
 
     function getAllGames() public view returns (playersList[] memory) {
@@ -59,9 +73,7 @@ contract ContractGame {
         return items;
     }
 
-    event GameResult(address winner, uint256 winAmount);
-
-    function random() private returns (uint256) {
+    function random() public returns (uint256) {
         seed = uint256(
             keccak256(
                 abi.encodePacked(
@@ -72,7 +84,7 @@ contract ContractGame {
                 )
             )
         );
-        return (seed % 1000000) / 1000000;
+        return seed % 2;
     }
 
     function play(uint256 id) public payable {
@@ -85,13 +97,23 @@ contract ContractGame {
         require(player1Address != msg.sender, "You can`t play self game");
 
         address payable player2Address = payable(msg.sender);
-        address payable winner = (random() == 0)
-            ? player1Address
-            : player2Address;
+        address payable winner;
+        address payable looser;
+        bool randResult = random() == 0;
+
+        if (randResult) {
+            winner = player1Address;
+            looser = player2Address;
+        } else {
+            winner = player2Address;
+            looser = player1Address;
+        }
+
         uint256 winBalance = ((amountValue * 2) * 90) / 100;
 
         winner.transfer(winBalance);
-        emit GameResult(winner, winBalance);
+
+        emit GameResult(winner, looser, winBalance);
 
         deleteGame(id);
     }
